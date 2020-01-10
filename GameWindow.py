@@ -26,7 +26,7 @@ def construct_window():
     frame.grid()
 
     # Initialize the buttons list
-    buttons = [[0 for i in range(board_length)] for j in range(board_length)]
+    buttons = [[0 for i in range(BOARD_LENGTH)] for j in range(BOARD_LENGTH)]
 
     # load the background, kid and bunny images
     bunny_photo = PhotoImage(file = r"images/bunny.png")
@@ -34,8 +34,8 @@ def construct_window():
     kid_photo = PhotoImage(file = r"images/kid.png")
 
     # create the board's buttons
-    for i in range(board_length):
-        for j in range(board_length):
+    for i in range(BOARD_LENGTH):
+        for j in range(BOARD_LENGTH):
             buttons[i][j] = Button(frame, height=80, width=120, image=grass_photo, bg='pale turquoise1', command= partial(player_move,i, j))
             buttons[i][j].grid(column=j, row=i)
 
@@ -99,44 +99,3 @@ init_game()
 
 construct_window()
 window.mainloop()
-
-
-# ******************* tests to add image to buttons
-"""""
-buttons2 = [[0 for i in range(9)] for j in range(9)]
-bunny_photo = None
-grass_photo = None
-kid_photo = None
-
-
-def add_image(row, col):
-    buttons2[row][col].config(image=grass_photo, compound=TOP)
-    buttons2[row][col].grid(column=col,row=row)
-
-
-def change_image(image, row, col):
-    buttons2[row][col].config(image=image, compound=TOP)
-    buttons2[row][col].grid(column=col,row=row)
-
-
-window = Tk()
-
-window.title('Catch the bunny Game')
-
-frame = Frame(window)
-frame.grid()
-
-bunny_photo = PhotoImage(file = r"bunny.png")
-grass_photo = PhotoImage(file = r"grassbig.png")
-kid_photo = PhotoImage(file = r"kid.png")
-
-for i in range(9):
-    for j in range(9):
-        buttons2[i][j] = Button(frame, height=80, width=120, bg='pale turquoise1', command= partial(change_image, kid_photo, i, j))
-        buttons2[i][j].grid(row=i, column=j)
-        add_image(i, j)
-
-
-window.mainloop()
-
-"""
