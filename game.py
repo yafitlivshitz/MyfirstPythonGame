@@ -23,236 +23,194 @@ BOARD_LENGTH = 9
 BOARD_SIZE = BOARD_LENGTH * BOARD_LENGTH
 
 # --- game parameters
-kid_row = 0
-kid_col = 0
-bunny_row = 0
-bunny_col = 0
+kid_position = (0, 0)
+bunny_position = (0, 0)
 number_of_moves = 0
 
 
 def init_game():
-    global kid_row
-    global kid_col
-    global bunny_row
-    global bunny_col
     global number_of_moves
 
-    kid_row = 0
-    kid_col = 0
-    bunny_row = 0
-    bunny_col = 0
     number_of_moves = 0
 
-    # Set a spot for the bunny
     init_locations()
 
 
-# Change the initial position (in case the randomized positions are the same - set them to be different)
-def move_initial_position():
-    global bunny_row
-    global bunny_col
+def generate_random_position():
+    position = random.randint(0, BOARD_SIZE)
 
-    bunny_row = BOARD_SIZE - kid_row
-    bunny_col = BOARD_SIZE - kid_col
+    return int(position / BOARD_LENGTH), int(position % BOARD_LENGTH)
+
+
+def change_initial_bunny_position():
+    global bunny_position
+
+    bunny_position[0] = BOARD_SIZE - kid_position[0]
+    bunny_position[1] = BOARD_SIZE - kid_position[1]
 
 
 def init_locations():
-    global bunny_row
-    global bunny_col
-    global kid_row
-    global kid_col
+    global kid_position
+    global bunny_position
 
-    # generate a position for the kid
-    position = random.randint(0, BOARD_SIZE)
-    kid_row = int(position / BOARD_LENGTH)
-    kid_col = int(position % BOARD_LENGTH)
+    kid_position = generate_random_position()
+    bunny_position = generate_random_position()
 
-    # generate a position for the bunny
-    position = random.randint(0, BOARD_LENGTH)
-    new_row = int(position / BOARD_LENGTH)
-    new_col = int(position % BOARD_LENGTH)
-
-    # Verify that the positions are different
-    if new_row == kid_row and new_col == kid_col:
-        move_initial_position()
-    else:
-        bunny_row = new_row
-        bunny_col = new_col
+    if kid_caught_bunny():
+        change_initial_bunny_position()
 
 
-# Validate the chosen new cell is allowed (one cell up\dowm\left\right)
+# Validate the chosen new cell is allowed (one cell up\down\left\right)
 def validate_kid_move(row, col):
-    if abs(kid_row - row) + abs(kid_col - col) is not 1:
+    if distance_to_kid((row, col)) is not 1:
         return False
     else:
         return True
 
 
-def update_move(new_row, new_col):
-    global kid_col
-    global kid_row
-
-    kid_col = new_col
-    kid_row = new_row
+def is_bunny_on_upper_boarder():
+    return bunny_position[0] == 0
 
 
-# generates a random legal move for the computer
+def is_bunny_on_down_boarder():
+    return bunny_position[0] == BOARD_LENGTH - 1
+
+
+def is_bunny_on_left_boarder():
+    return bunny_position[1] == 0
+
+
+def is_bunny_on_right_boarder():
+    return bunny_position[1] == BOARD_LENGTH - 1
+
+
 def generate_random_move():
-    global bunny_col
-    global bunny_row
+    global bunny_position
 
     direction = random.randint(1, MoveDirection.__len__())
     direction = MoveDirection(direction)
 
     if direction == MoveDirection.UP:
-        if bunny_col < BOARD_LENGTH - 1:
-            bunny_col = bunny_col + 1
-        else:  # the bunny is in the most upper column - move it down one step
-            bunny_col = BOARD_LENGTH - 2
+        if is_bunny_on_upper_boarder():
+            bunny_position = (1, bunny_position[1])
+        else:
+            bunny_position = (bunny_position[0] - 1, bunny_position[1])
+
     elif direction == MoveDirection.DOWN:
-        if bunny_col > 0:
-            bunny_col = bunny_col - 1
-        else:  # the bunny is in the most lower column - move it up one step
-            bunny_col = 1
+        if is_bunny_on_down_boarder():
+            bunny_position = (BOARD_LENGTH - 2, bunny_position[1])
+        else:
+            bunny_position = (bunny_position[0] + 1, bunny_position[1])
     elif direction == MoveDirection.LEFT:
-        if bunny_row > 0:
-            bunny_row = bunny_row - 1
+        if is_bunny_on_left_boarder():
+            bunny_position = (bunny_position[0], 1)
         else:  # the bunny is in the upper column - move it down
-            bunny_row = 1
+            bunny_position = (bunny_position[0], bunny_position[1] - 1)
     else:  # direction = MoveDirection.RIGHT:
-        if bunny_row < BOARD_LENGTH - 1:
-            bunny_row = bunny_row + 1
+        if is_bunny_on_right_boarder():
+            bunny_position = (bunny_position[0], BOARD_LENGTH - 2)
         else:  # the bunny is in the upper column - move it down
-            bunny_row = bunny_row - 2
+            bunny_position = (bunny_position[0], bunny_position[1] + 1)
+
+    # todo: check that the bunny is not on the kid's position
 
 
-def calc_distance_to_kid(row, col):
-    return abs(col - kid_col) + abs(row - kid_row)
+def distance_to_kid(position):
+    return abs(kid_position[0] - position[0]) + abs(kid_position[1] - position[1])
 
 
 # parameters related to the calculation of the bunny move
-row_of_max = 0
-col_of_max = 0
+max_distance_position = (0, 0)
 max_distance = 0
 
 
 def init_max_position_params():
-    global row_of_max
-    global col_of_max
+    global max_distance_position
     global max_distance
 
-    row_of_max = 0
-    col_of_max = 0
+    max_distance_position = (0, 0)
     max_distance = 0
 
 
-def update_max_dist_from_kid(current_dist, row, col):
-    global row_of_max
-    global col_of_max
+def update_max_dist_from_kid(current_dist, position):
+    global max_distance_position
     global max_distance
 
     if current_dist > max_distance:
-        row_of_max = row
-        col_of_max = col
+        max_distance_position = position
         max_distance = current_dist
 
 
-def generate_smart_move():
-    global bunny_col
-    global bunny_row
+def check_max_distance_to_kid(position):
+    current_distance = distance_to_kid(position)
+    update_max_dist_from_kid(current_distance, position)
 
-    current_col = 0
-    current_row = 0
-    current_distance = 0
+
+def generate_smart_move():
+    global bunny_position
 
     init_max_position_params()
 
     # Calculate the distance between the kid and the bunny in the 4 situations and choose the max
 
     # Calculate up direction
-    if bunny_col < BOARD_LENGTH - 1:
-        current_col = bunny_col + 1
-        current_row = bunny_row
-        current_distance = calc_distance_to_kid(current_row, current_col)
-        update_max_dist_from_kid(current_distance, current_row, current_col)
+    if is_bunny_on_upper_boarder() is False:
+        check_max_distance_to_kid((bunny_position[0] - 1, bunny_position[1]))
 
     # Calculate down direction
-    if bunny_col > 0:
-        current_col = bunny_col - 1
-        current_row = bunny_row
-        current_distance = calc_distance_to_kid(current_row, current_col)
-        update_max_dist_from_kid(current_distance, current_row, current_col)
+    if is_bunny_on_down_boarder() is False:
+        check_max_distance_to_kid((bunny_position[0] + 1, bunny_position[1]))
 
     # Calculate left direction
-    if bunny_row > 0:
-        current_col = bunny_col
-        current_row = bunny_row - 1
-        current_distance = calc_distance_to_kid(current_row, current_col)
-        update_max_dist_from_kid(current_distance, current_row, current_col)
+    if is_bunny_on_left_boarder() is False:
+        check_max_distance_to_kid((bunny_position[0], bunny_position[1] - 1))
 
     # Calculate right direction
-    if bunny_row < BOARD_LENGTH - 1:
-        current_col = bunny_col
-        current_row = bunny_row + 1
-        current_distance = calc_distance_to_kid(current_row, current_col)
-        update_max_dist_from_kid(current_distance, current_row, current_col)
+    if is_bunny_on_right_boarder() is False:
+        check_max_distance_to_kid((bunny_position[0], bunny_position[1] + 1))
 
     # finally update the bunny's positions to the best one
-    bunny_row = row_of_max
-    bunny_col = col_of_max
+    bunny_position = (max_distance_position[0], max_distance_position[1])
 
 
 def get_kid_row():
-    return kid_row
+    return kid_position[0]
 
 
 def get_kid_col():
-    return kid_col
+    return kid_position[1]
 
 
 def get_bunny_row():
-    return bunny_row
+    return bunny_position[0]
 
 
 def get_bunny_col():
-    return bunny_col
+    return bunny_position[1]
 
 
 def kid_caught_bunny():
-    if bunny_col == kid_col and bunny_row == kid_row:
+    if bunny_position[0] == kid_position[0] and bunny_position[1] == kid_position[1]:
         return True
     return False
 
 
 # One round includes one turn of the kid and one turn of the bunny (computer)
-def play_round(row,col):
+def play_round(row, col):
     global number_of_moves
+    global kid_position
 
-    # Update the kid's move
-    update_move(row, col)
+    kid_position = (row, col)
 
-    # increase the number of attempts
     number_of_moves = number_of_moves + 1
 
-    # check if the kid won
     if kid_caught_bunny():
         return GameState.PLAYER_WON
 
-    # check if the game there are more attempts to catch the bunny
     if number_of_moves == MAX_NUM_OF_MOVES:
         return GameState.COMPUTER_WON
 
-    # the game is still on - generate a move for the bunny
-    # generate_random_move()
-    generate_smart_move()
+    # generate_smart_move()
+    generate_random_move()
 
     return GameState.IN_PROGRESS
-
-
-
-
-
-
-
-
-
